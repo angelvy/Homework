@@ -1,0 +1,92 @@
+select 
+    m.title as movie_title,
+    s.hall_id as hall_number,
+    s.session_start as session_time,
+    v.name as visitor_name,
+    count(t.ticket_id) as total_tickets,
+    avg(t.price) as avg_ticket_price,
+     p.purchase_time as purchase_time
+from 
+    movies m
+join 
+    sessions s on m.movie_id = s.movie_id
+join 
+    tickets t on s.session_id = t.session_id
+join 
+    purchases p on t.ticket_id = p.ticket_id
+join 
+    visitors v on p.visitor_id = v.visitor_id
+where 
+    m.genre = 'drama' 
+    and t.price > 5 
+    and v.age > 18
+group by 
+    m.title, s.hall_id, s.session_start, v.name, p.purchase_time, s.session_id
+order by 
+    total_tickets desc, p.purchase_time desc;
+   
+   
+select 
+      m.title as movie_title,
+      s.session_start as session_time,
+      'Adult' as visitor_type
+  from 
+      movies m
+  join 
+      sessions s on m.movie_id = s.movie_id
+  join 
+      tickets t on s.session_id = t.session_id
+  join 
+      purchases p on t.ticket_id = p.ticket_id
+  join 
+      visitors v on p.visitor_id = v.visitor_id
+  where 
+      v.age > 18
+
+union
+
+select 
+      m.title as movie_title,
+      s.session_start as session_time,
+      'Child' as visitor_type
+  from 
+      movies m
+  join 
+      sessions s on m.movie_id = s.movie_id
+  join 
+      tickets t on s.session_id = t.session_id
+  join 
+      purchases p on t.ticket_id = p.ticket_id
+  join 
+      visitors v on p.visitor_id = v.visitor_id
+  where 
+      v.age <= 18
+  order by 
+      session_time;
+
+
+	   
+
+with ticket_sales as (
+    select 
+        m.genre,
+        m.duration,
+        t.price
+    from 
+        movies m
+    join 
+        sessions s on m.movie_id = s.movie_id
+    join 
+        tickets t on s.session_id = t.session_id
+)
+select 
+    genre,
+    round(avg(duration), 2) as avg_duration,
+    round(avg(price), 2) as avg_ticket_price,
+    round(avg(price / duration), 4) as avg_price_per_minute
+from 
+    ticket_sales
+group by 
+    genre
+order by 
+    avg_price_per_minute desc;
