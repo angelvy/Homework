@@ -1,0 +1,80 @@
+create table movies(
+    movie_id int primary key,
+    title varchar(255) not null,
+    duration int not null,
+    genre varchar(100) not null
+);
+
+create table tickets(
+    ticket_id int primary key,
+    session_id int,
+    movie_id int, 
+    hall_id int, 
+    session_start datetime, 
+    price decimal(10, 2) not null,
+    seat_number varchar(10) not null,
+    foreign key (movie_id) references movies(movie_id) on delete cascade
+);
+
+create table visitors(
+    visitor_id int primary key,
+    name varchar(255) not null,
+    age int not null,
+    gender enum('male', 'female', 'other') not null
+);
+
+create table purchases(
+    purchase_id int primary key,
+    ticket_id int,
+    visitor_id int,
+    purchase_time datetime not null,
+    foreign key (ticket_id) references tickets(ticket_id) on delete cascade,
+    foreign key (visitor_id) references visitors(visitor_id) on delete cascade
+);
+
+explain select v.name, 
+       min(v.age) as age, 
+       group_concat(distinct m.title separator ', ') as titles, 
+       'action' as genre, 
+       format(avg(t.price), 2) as avg_price, 
+       min(p.purchase_time) as first_purchase_time
+from purchases p
+join tickets t on p.ticket_id = t.ticket_id
+join visitors v on p.visitor_id = v.visitor_id
+join movies m on t.movie_id = m.movie_id
+where m.genre = 'action' and t.price > 50 and v.age < 18
+group by v.name;
+
+create index idx_movies_genre on movies(genre);
+create index idx_tickets_movie_id on tickets(movie_id);
+create index idx_purchases_ticket_id on purchases(ticket_id);
+
+
+explain with filtered_movies as (
+    select movie_id, title
+    from movies
+    where genre = 'action'
+),
+filtered_tickets as (
+    select ticket_id, movie_id, price
+    from tickets
+    where price > 50
+),
+filtered_visitors as (
+    select visitor_id, name, age
+    from visitors
+    where age < 18
+)
+select v.name, 
+       min(v.age) as age, 
+       group_concat(distinct m.title) as titles, 
+       'action' as genre, 
+       avg(t.price) as avg_price, 
+       min(p.purchase_time) as first_purchase_time
+from purchases p
+join filtered_tickets t on p.ticket_id = t.ticket_id
+join filtered_visitors v on p.visitor_id = v.visitor_id
+join filtered_movies m on t.movie_id = m.movie_id
+group by v.name;
+
+
